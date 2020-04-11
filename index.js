@@ -23,11 +23,9 @@ let client = new MongoClient(uri, { useNewUrlParser: true });
 app.get('/products', (req, res) =>{
    client = new MongoClient(uri, { useNewUrlParser: true });
    client.connect(err => {
-      const collection = client.db("shopStore").collection("users");
-      // collection.find({ name: "Laptop"}).toArray((err, documents) => { // for limit and filter
-      collection.find().limit(10).toArray((err, documents) => {
+      const collection = client.db("shopStore").collection("Products");
+      collection.find().toArray((err, documents) => {
             if(err){
-               console.log(err);
                res.status(500).send({message:err})
             }else{
                res.send(documents)
@@ -38,20 +36,70 @@ app.get('/products', (req, res) =>{
 })
 
 
-app.get('/users/:id', (req, res)=>{
-   const id = req.params.id;
-   const name = users[id];
-   res.send({id, name});
+app.get('/products/:key', (req, res)=>{
+   const key = req.params.key;
+   client = new MongoClient(uri, { useNewUrlParser: true });
+   client.connect(err => {
+      const collection = client.db("shopStore").collection("Products");
+      collection.find({key}).toArray((err, documents) => {
+         if(err){
+            console.log(err);
+            res.status(500).send({message:err})
+         }else{
+            res.send(documents[0])
+         }
+      });
+      client.close();
+   });
 });
 
+app.post('/getProductsByKey', (req, res)=>{
+   const key = req.params.key;
+   const productKeys = req.body;
+
+   client = new MongoClient(uri, { useNewUrlParser: true });
+   client.connect(err => {
+      const collection = client.db("shopStore").collection("Products");
+      collection.find({key: {$in: productKeys}}).toArray((err, documents) => {
+         if(err){
+            console.log(err);
+            res.status(500).send({message:err})
+         }else{
+            res.send(documents)
+         }
+      });
+      client.close();
+   });
+});
+//delete
+// update
 //post
 app.post('/addProduct', (req, res) => {
    client = new MongoClient(uri, { useNewUrlParser: true });
    const product = req.body;
    
    client.connect(errror => {
-   const collection = client.db("shopStore").collection("users");
-   collection.insertOne(product, (err, result) => {
+   const collection = client.db("shopStore").collection("Products");
+   collection.insert(product, (err, result) => {
+         if(err){
+            console.log(err);
+            res.status(500).send({message:err})
+         }else{
+            res.send(result.ops[0])
+         }
+      });
+      client.close();
+   });
+})
+
+app.post('/placeOrder', (req, res) => {
+   const orderDetails = req.body;
+   orderDetails.orderTime = new Date();
+   client = new MongoClient(uri, { useNewUrlParser: true });
+   
+   client.connect(errror => {
+   const collection = client.db("shopStore").collection("orders");
+   collection.insertOne(orderDetails, (err, result) => {
          if(err){
             console.log(err);
             res.status(500).send({message:err})
